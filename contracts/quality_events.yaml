@@ -1,0 +1,104 @@
+apiVersion: datacontract/v1
+kind: DataContract
+id: quality_events
+version: 1.0.0
+status: active
+domain: quality
+description: >-
+  One row per defect recorded at an inspection point. The inspector is carried as
+  a pseudonymous identifier only, so the table can be shared for analysis without
+  exposing who recorded each event.
+owner:
+  team: Quality Engineering Data
+  group: dp-quality-owners
+  steward: dp-quality-stewards
+table:
+  schema: quality
+  name: quality_events
+  primary_key: [event_id]
+  cluster_by: [site_code, event_ts]
+columns:
+  - name: event_id
+    type: string
+    nullable: false
+    description: Unique identifier of the quality event.
+    classification: internal
+    checks:
+      pattern: "^QE-[0-9A-F]{12}$"
+  - name: event_ts
+    type: timestamp
+    nullable: false
+    description: When the defect was recorded, in UTC.
+    classification: internal
+  - name: site_code
+    type: string
+    nullable: false
+    description: Code of the site where the defect was found.
+    classification: internal
+    checks:
+      pattern: "^[A-Z]{3}[0-9]{2}$"
+  - name: asset_id
+    type: string
+    nullable: false
+    description: Asset that produced the defective units.
+    classification: internal
+    checks:
+      pattern: "^AST-[0-9]{6}$"
+  - name: defect_code
+    type: string
+    nullable: false
+    description: Code from the defect catalogue.
+    classification: internal
+    checks:
+      pattern: "^[A-Z]{2}-[0-9]{3}$"
+  - name: severity
+    type: string
+    nullable: false
+    description: Severity assigned at inspection.
+    classification: internal
+    checks:
+      allowed_values: [minor, major, critical]
+  - name: quantity_affected
+    type: int
+    nullable: false
+    description: Units affected by the defect.
+    classification: internal
+    checks:
+      min: 1
+  - name: inspector_pseudo_id
+    type: string
+    nullable: false
+    description: Salted hash of the inspector identifier. Never reversible in this table.
+    classification: confidential
+    pii: true
+    checks:
+      pattern: "^[0-9a-f]{64}$"
+  - name: is_customer_reported
+    type: boolean
+    nullable: false
+    description: True when the defect came from a customer complaint.
+    classification: internal
+quality:
+  - name: event_not_in_future
+    expression: event_ts <= current_timestamp()
+    on_violation: drop
+sla:
+  freshness:
+    column: event_ts
+    max_delay_hours: 2
+  update_frequency: every 15 minutes
+  availability_percent: 99.9
+  retention_days: 1825
+consumers:
+  fabric:
+    exposure: shortcut
+    measures:
+      - name: Quality Events
+        expression: COUNTROWS('quality_events')
+        format: "#,0"
+      - name: Critical Events
+        expression: CALCULATE(COUNTROWS('quality_events'), 'quality_events'[severity] = "critical")
+        format: "#,0"
+      - name: Units Affected
+        expression: SUM('quality_events'[quantity_affected])
+        format: "#,0"

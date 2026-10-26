@@ -1,0 +1,152 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/marlyngiselle/databricks-fabric-lakehouse-bridge/schema/data-contract/v1",
+  "title": "Data contract for a gold table shared between Databricks and Fabric",
+  "description": "Inspired by the Open Data Contract Standard, reduced to what the generators and the breaking change gate need.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "id", "version", "status", "domain", "description", "owner", "table", "columns", "sla", "consumers"],
+  "properties": {
+    "apiVersion": { "const": "datacontract/v1" },
+    "kind": { "const": "DataContract" },
+    "id": { "$ref": "#/$defs/identifier" },
+    "version": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$",
+      "description": "Semantic version. A breaking change needs a new major version."
+    },
+    "status": { "enum": ["draft", "active", "deprecated"] },
+    "domain": { "$ref": "#/$defs/identifier" },
+    "description": { "type": "string", "minLength": 20 },
+    "owner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["team", "group", "steward"],
+      "properties": {
+        "team": { "type": "string", "minLength": 3 },
+        "group": { "$ref": "#/$defs/principal", "description": "Account group that owns the table in Unity Catalog." },
+        "steward": { "$ref": "#/$defs/principal", "description": "Account group accountable for definitions and quality." }
+      }
+    },
+    "table": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "name", "primary_key"],
+      "properties": {
+        "schema": { "$ref": "#/$defs/identifier" },
+        "name": { "$ref": "#/$defs/identifier" },
+        "primary_key": { "$ref": "#/$defs/columnList", "minItems": 1 },
+        "cluster_by": { "$ref": "#/$defs/columnList", "maxItems": 4 }
+      }
+    },
+    "columns": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/column" }
+    },
+    "quality": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "expression", "on_violation"],
+        "properties": {
+          "name": { "$ref": "#/$defs/identifier" },
+          "expression": { "type": "string", "minLength": 3 },
+          "on_violation": { "enum": ["warn", "drop", "fail"] }
+        }
+      }
+    },
+    "sla": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["freshness", "update_frequency"],
+      "properties": {
+        "freshness": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["column", "max_delay_hours"],
+          "properties": {
+            "column": { "$ref": "#/$defs/identifier" },
+            "max_delay_hours": { "type": "number", "exclusiveMinimum": 0, "maximum": 744 }
+          }
+        },
+        "update_frequency": { "type": "string", "minLength": 3 },
+        "availability_percent": { "type": "number", "minimum": 90, "maximum": 100 },
+        "retention_days": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "consumers": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fabric"],
+      "properties": {
+        "fabric": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["exposure"],
+          "properties": {
+            "exposure": {
+              "enum": ["shortcut", "none"],
+              "description": "shortcut exposes the Delta folder to OneLake. none keeps the table inside Databricks."
+            },
+            "measures": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["name", "expression"],
+                "properties": {
+                  "name": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9 %]{1,59}$" },
+                  "expression": { "type": "string", "minLength": 3 },
+                  "format": { "type": "string" }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "identifier": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,62}$" },
+    "principal": { "type": "string", "pattern": "^[a-z][a-z0-9-]{2,63}$" },
+    "columnList": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/identifier" }
+    },
+    "column": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "type", "nullable", "description", "classification"],
+      "properties": {
+        "name": { "$ref": "#/$defs/identifier" },
+        "type": {
+          "type": "string",
+          "pattern": "^(string|int|bigint|double|boolean|date|timestamp|decimal\\(([1-9]|[1-2][0-9]|3[0-8]),([0-9]|[1-2][0-9]|3[0-8])\\))$"
+        },
+        "nullable": { "type": "boolean" },
+        "description": { "type": "string", "minLength": 5 },
+        "classification": { "enum": ["public", "internal", "confidential", "restricted"] },
+        "pii": { "type": "boolean", "default": false },
+        "checks": {
+          "type": "object",
+          "additionalProperties": false,
+          "minProperties": 1,
+          "properties": {
+            "min": { "type": "number" },
+            "max": { "type": "number" },
+            "pattern": { "type": "string", "minLength": 1 },
+            "allowed_values": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  }
+}
