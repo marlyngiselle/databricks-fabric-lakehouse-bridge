@@ -1,0 +1,106 @@
+/// One row per defect recorded at an inspection point. The inspector is carried as a pseudonymous identifier only, so the table can be shared for analysis without exposing who recorded each event.
+table quality_events
+	lineageTag: 54d97906-5a6b-5820-80fc-e31b3b08243d
+
+	measure 'Quality Events' = COUNTROWS('quality_events')
+		formatString: #,0
+		lineageTag: 0575051d-8b3b-51ff-ae6b-08425b2f7391
+
+	measure 'Critical Events' = CALCULATE(COUNTROWS('quality_events'), 'quality_events'[severity] = "critical")
+		formatString: #,0
+		lineageTag: 5be687f6-4325-50d4-889b-4ea42f1c42f0
+
+	measure 'Units Affected' = SUM('quality_events'[quantity_affected])
+		formatString: #,0
+		lineageTag: eb8e8aba-3162-5b41-b02b-771478ae8a75
+
+	/// Unique identifier of the quality event.
+	column event_id
+		dataType: string
+		lineageTag: 55ff51f8-8747-5f73-bfdf-e5c99d3af829
+		summarizeBy: none
+		sourceColumn: event_id
+
+		annotation classification = internal
+
+	/// When the defect was recorded, in UTC.
+	column event_ts
+		dataType: dateTime
+		lineageTag: 61a6bbeb-184d-5122-b21a-b9d9a0c31cfb
+		summarizeBy: none
+		sourceColumn: event_ts
+
+		annotation classification = internal
+
+	/// Code of the site where the defect was found.
+	column site_code
+		dataType: string
+		lineageTag: ffb3e7fd-762e-5770-af5e-4d319aa3691c
+		summarizeBy: none
+		sourceColumn: site_code
+
+		annotation classification = internal
+
+	/// Asset that produced the defective units.
+	column asset_id
+		dataType: string
+		lineageTag: 4017faed-2efd-5c91-95b4-bb1fa4b25a5b
+		summarizeBy: none
+		sourceColumn: asset_id
+
+		annotation classification = internal
+
+	/// Code from the defect catalogue.
+	column defect_code
+		dataType: string
+		lineageTag: eb7cf526-905b-5298-bfbd-a4c6f1603834
+		summarizeBy: none
+		sourceColumn: defect_code
+
+		annotation classification = internal
+
+	/// Severity assigned at inspection.
+	column severity
+		dataType: string
+		lineageTag: b1602412-8fe4-523d-a3d3-371bd239d39c
+		summarizeBy: none
+		sourceColumn: severity
+
+		annotation classification = internal
+
+	/// Units affected by the defect.
+	column quantity_affected
+		dataType: int64
+		lineageTag: bc023a5c-7e4a-5db2-9269-a362944245a4
+		summarizeBy: none
+		sourceColumn: quantity_affected
+
+		annotation classification = internal
+
+	/// Salted hash of the inspector identifier. Never reversible in this table.
+	column inspector_pseudo_id
+		dataType: string
+		lineageTag: 21084ad7-8904-5d41-b49f-657857184573
+		summarizeBy: none
+		sourceColumn: inspector_pseudo_id
+
+		annotation classification = confidential
+		annotation pii = true
+
+	/// True when the defect came from a customer complaint.
+	column is_customer_reported
+		dataType: boolean
+		lineageTag: 5d8a138f-62b5-5523-9afc-766350d2e4fd
+		summarizeBy: none
+		sourceColumn: is_customer_reported
+
+		annotation classification = internal
+
+	partition quality_events = entity
+		mode: directLake
+		source
+			entityName: quality_events
+			schemaName: quality
+			expressionSource: DatabaseQuery
+
+	annotation contract_version = 1.0.0

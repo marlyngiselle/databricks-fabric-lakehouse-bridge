@@ -1,0 +1,133 @@
+/// One row per production asset and calendar day with availability, performance, quality rate and overall equipment effectiveness (OEE). The reference table for plant performance reporting.
+table asset_daily_kpis
+	lineageTag: 1b68fec2-9b45-505c-b979-be7407261408
+
+	measure 'Average OEE' = AVERAGE('asset_daily_kpis'[oee])
+		formatString: 0.0%
+		lineageTag: f9e5093b-e981-5a15-8d85-e7591494003e
+
+	measure 'Units Produced' = SUM('asset_daily_kpis'[units_produced])
+		formatString: #,0
+		lineageTag: 0a4abf2c-f7dc-564e-8d44-07feee4e6083
+
+	measure 'Reject Rate' = DIVIDE(SUM('asset_daily_kpis'[units_rejected]), SUM('asset_daily_kpis'[units_produced]))
+		formatString: 0.00%
+		lineageTag: d4ed45a4-253b-5145-8523-afef71968cd7
+
+	/// Business key of the production asset.
+	column asset_id
+		dataType: string
+		lineageTag: 86302c82-41cd-588f-b986-609891868518
+		summarizeBy: none
+		sourceColumn: asset_id
+
+		annotation classification = internal
+
+	/// Code of the site that operates the asset.
+	column site_code
+		dataType: string
+		lineageTag: 73bf1893-08ae-5093-8043-f06cc873284b
+		summarizeBy: none
+		sourceColumn: site_code
+
+		annotation classification = internal
+
+	/// Calendar day the KPIs refer to, in the site time zone.
+	column kpi_date
+		dataType: dateTime
+		formatString: yyyy-mm-dd
+		lineageTag: 12feef33-46df-5714-8001-a29d39adfc22
+		summarizeBy: none
+		sourceColumn: kpi_date
+
+		annotation classification = internal
+
+	/// Minutes the asset was scheduled to run.
+	column planned_runtime_min
+		dataType: int64
+		lineageTag: 00b6873b-ea28-55db-8fcd-516aac36f1b7
+		summarizeBy: none
+		sourceColumn: planned_runtime_min
+
+		annotation classification = internal
+
+	/// Minutes the asset actually ran.
+	column run_time_min
+		dataType: int64
+		lineageTag: decdcbe7-6ac0-5678-9406-31fb0f764473
+		summarizeBy: none
+		sourceColumn: run_time_min
+
+		annotation classification = internal
+
+	/// Units produced during the day, good and rejected.
+	column units_produced
+		dataType: int64
+		lineageTag: 7f738641-d216-5a30-bc6b-0dcd745fce0f
+		summarizeBy: none
+		sourceColumn: units_produced
+
+		annotation classification = internal
+
+	/// Units rejected by quality control.
+	column units_rejected
+		dataType: int64
+		lineageTag: 72e3f0f5-85d3-5aa4-b635-0602730f9e7c
+		summarizeBy: none
+		sourceColumn: units_rejected
+
+		annotation classification = internal
+
+	/// Run time divided by planned runtime.
+	column availability
+		dataType: double
+		lineageTag: 5411d200-e62c-536c-adf8-be797214f8b3
+		summarizeBy: none
+		sourceColumn: availability
+
+		annotation classification = internal
+
+	/// Actual output divided by theoretical output at nominal speed.
+	column performance
+		dataType: double
+		lineageTag: fdd90d61-f429-5bb2-bd28-cac03ad4eac2
+		summarizeBy: none
+		sourceColumn: performance
+
+		annotation classification = internal
+
+	/// Good units divided by units produced.
+	column quality_rate
+		dataType: double
+		lineageTag: 27a72eda-312f-5775-8cbb-eca04d36b76b
+		summarizeBy: none
+		sourceColumn: quality_rate
+
+		annotation classification = internal
+
+	/// Availability times performance times quality rate.
+	column oee
+		dataType: double
+		lineageTag: e0a34edb-0010-5ff1-b6ce-7cfde5d6e942
+		summarizeBy: none
+		sourceColumn: oee
+
+		annotation classification = internal
+
+	/// When the row was last written by the gold pipeline, in UTC.
+	column updated_at
+		dataType: dateTime
+		lineageTag: 5d546955-6003-5ebf-a019-7a786d6226a0
+		summarizeBy: none
+		sourceColumn: updated_at
+
+		annotation classification = internal
+
+	partition asset_daily_kpis = entity
+		mode: directLake
+		source
+			entityName: asset_daily_kpis
+			schemaName: operations
+			expressionSource: DatabaseQuery
+
+	annotation contract_version = 1.2.0

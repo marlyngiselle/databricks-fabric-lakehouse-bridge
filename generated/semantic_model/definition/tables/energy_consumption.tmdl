@@ -1,0 +1,105 @@
+/// Hourly energy consumption per meter and energy carrier, with the associated greenhouse gas emissions in kilograms of CO2 equivalent. Feeds energy cost and decarbonisation reporting.
+table energy_consumption
+	lineageTag: b681da29-b4a1-5b4d-800e-30b3e7182263
+
+	measure 'Energy kWh' = SUM('energy_consumption'[consumption_kwh])
+		formatString: #,0
+		lineageTag: de32f474-e923-5ae1-8e30-419345729171
+
+	measure 'Emissions kg CO2e' = SUM('energy_consumption'[co2e_kg])
+		formatString: #,0.0
+		lineageTag: d6b0e2cf-a77c-5370-bf72-dc44365a797d
+
+	measure 'Electricity Share' = DIVIDE(CALCULATE(SUM('energy_consumption'[consumption_kwh]), 'energy_consumption'[energy_carrier] = "electricity"), SUM('energy_consumption'[consumption_kwh]))
+		formatString: 0.0%
+		lineageTag: d99a968b-c305-5bb5-a3e3-713859f263e8
+
+	/// Business key of the energy meter.
+	column meter_id
+		dataType: string
+		lineageTag: c5632efc-3f43-5f3e-b883-c49ffc376ff4
+		summarizeBy: none
+		sourceColumn: meter_id
+
+		annotation classification = internal
+
+	/// Start of the hour the reading covers, in UTC.
+	column reading_hour
+		dataType: dateTime
+		lineageTag: 6d154112-e9e1-5a73-8425-4f05661c8114
+		summarizeBy: none
+		sourceColumn: reading_hour
+
+		annotation classification = internal
+
+	/// Code of the site where the meter is installed.
+	column site_code
+		dataType: string
+		lineageTag: cf7ba315-fa6f-5d2a-b60e-afb406192ae3
+		summarizeBy: none
+		sourceColumn: site_code
+
+		annotation classification = internal
+
+	/// Asset the meter is attached to. Empty for site level meters.
+	column asset_id
+		dataType: string
+		lineageTag: 1b350df3-31b7-5c53-b195-8ea646e1e97d
+		summarizeBy: none
+		sourceColumn: asset_id
+
+		annotation classification = internal
+
+	/// Form of energy measured by the meter.
+	column energy_carrier
+		dataType: string
+		lineageTag: 27ec9bc4-fa45-5d8d-ac0e-7ecacda48aac
+		summarizeBy: none
+		sourceColumn: energy_carrier
+
+		annotation classification = internal
+
+	/// Energy consumed during the hour, converted to kilowatt hours.
+	column consumption_kwh
+		dataType: decimal
+		lineageTag: a2db3231-472b-5042-bde7-b39169f5ce12
+		summarizeBy: none
+		sourceColumn: consumption_kwh
+
+		annotation classification = internal
+
+	/// Emissions for the hour in kilograms of CO2 equivalent.
+	column co2e_kg
+		dataType: decimal
+		lineageTag: c2ee8719-0fc0-5538-b05a-db50171cd34e
+		summarizeBy: none
+		sourceColumn: co2e_kg
+
+		annotation classification = internal
+
+	/// Version of the emission factor table used for the conversion.
+	column emission_factor_version
+		dataType: string
+		lineageTag: c4c25304-2455-517a-9bc4-d0249e7e5b1e
+		summarizeBy: none
+		sourceColumn: emission_factor_version
+
+		annotation classification = internal
+
+	/// When the reading reached the gold table, in UTC.
+	column ingested_at
+		dataType: dateTime
+		lineageTag: e27aeafe-9ac2-5627-8478-e5c58bbb7bc1
+		summarizeBy: none
+		sourceColumn: ingested_at
+
+		annotation classification = internal
+
+	partition energy_consumption = entity
+		mode: directLake
+		source
+			entityName: energy_consumption
+			schemaName: energy
+			expressionSource: DatabaseQuery
+
+	annotation contract_version = 2.0.1
