@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dctl"
+version = "0.1.0"
+description = "Data contracts for gold tables shared between Databricks Unity Catalog and Microsoft Fabric."
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Giselle Da Costa" }]
+requires-python = ">=3.11"
+dependencies = ["pyyaml>=6.0", "jsonschema>=4.21"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "ruff>=0.6", "mypy>=1.10", "types-PyYAML", "types-jsonschema"]
+
+[project.scripts]
+dctl = "dctl.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src/contracts"]
+include = ["dctl*"]
+
+[tool.setuptools.package-data]
+dctl = ["schema/*.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+src = ["src/contracts", "tests"]
+extend-exclude = ["generated"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "PTH"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["dctl"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+files = ["src/contracts/dctl", "tests"]
+mypy_path = "src/contracts:tests"
